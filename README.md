@@ -7,19 +7,18 @@
 
 This project started with a simple question: if you were an anonymous investor on a peer-to-peer lending platform, how would you decide which loans to fund?
 
-The answer turns out to be more interesting than it looks. LendingClub assigns every loan a grade from A to G, and you could just follow their grades — Grade A loans default less, Grade G loans default more. But that raises a more interesting question: can you build something better than what LendingClub already gives you? And even if you can predict default well, does that actually translate to better investment returns?
-
-This project works through both questions across three phases — from exploratory data analysis through predictive modeling to portfolio construction and backtesting.
+The answer turns out to be more interesting than it looks. LendingClub assigns every loan a grade from A to G, and you could just follow their grades. Grade A loans default less, Grade G loans default more. But that raises a more interesting question: can you build something better than what LendingClub already gives you? And even if you can predict default well, does that actually translate to better investment returns?
+This project works through both questions across three phases: 1) exploratory data analysis, 2) predictive modeling, and 3) portfolio construction and backtesting.
 
 ---
 
 ## The Problem
 
-Peer-to-peer lending is an unusual asset class. As a lender, you're essentially making an unsecured loan to an individual borrower. You earn the interest rate if they repay, and you lose principal if they default. The platform (LendingClub in this case) has already done some risk assessment and assigned a grade, but that grade is based on their proprietary model — not yours.
+Peer-to-peer lending is an unusual asset class. As a lender, you're essentially making an unsecured loan to an individual borrower. You earn the interest rate if they repay, and you lose principal if they default. The platform has already done some risk assessment and assigned a grade, but that grade is based on their proprietary model, not yours. Additionally, the returns on loans vary by class. Of  course, you'd want to invest across a diverse range of asset classes to balance risk and return as a lender. 
 
-The core analytical challenge is that loans are temporal entities with 36 or 60 month terms. Default doesn't happen at a single point in time — some loans default immediately, some default years later, and some get repaid early before the term ends. Any model that ignores this temporal structure will produce optimistic results that don't hold in practice.
+The core analytical challenge is that loans are temporal entities with 36 or 60-month terms. Default doesn't happen at a single point in time. Some loans default immediately, some default years later, and some get repaid early before the term ends. Any model that ignores this temporal structure will produce optimistic results that don't hold in practice.
 
-There's also a data leakage problem that isn't obvious at first glance. LendingClub's dataset includes features like `grade` and `sub_grade` that are derived from their own internal model — not raw borrower data. If you include those features in your model, you're essentially asking "can LendingClub's model predict default?" which is a very different question from "can you build a model that predicts default from raw borrower characteristics?" This distinction matters enormously for understanding where your model's predictive power actually comes from.
+There's also a data leakage problem that isn't obvious at first glance. LendingClub's dataset includes features like `grade` and `sub_grade` that are derived from their own internal model, not raw borrower data. If you include those features in your model, you're essentially asking, "Can LendingClub's model predict default?" which is a very different question from "Can you build a model that predicts default from raw borrower characteristics?" This distinction matters enormously for understanding where your model's predictive power actually comes from.
 
 ---
 
@@ -30,7 +29,7 @@ credit-risk-portfolio-analytics/
 ├── README.md
 ├── requirements.txt
 ├── data/
-│   └── README.md          ← instructions to download LendingClub data
+│   └── 
 └── notebooks/
     ├── 01_investor_framing_and_eda.ipynb
     ├── 02_feature_engineering_and_returns.ipynb
@@ -46,7 +45,7 @@ The three notebooks are designed to be read in order. Each one builds on the pre
 The dataset comes from LendingClub's public loan data, covering loans issued from approximately 2010 to 2019. The full dataset contains around 2.5 million loan records with 150+ features per loan.
 
 **To download the data:**
-1. Go to [LendingClub's public data page](https://www.lendingclub.com/info/download-data.action) — note that LendingClub ceased operations as a P2P platform in 2020, but historical loan data remains publicly available through various sources including Kaggle
+1. Go to [LendingClub's public data page](https://www.lendingclub.com/info/download-data.action) — note that LendingClub ceased operations as a P2P platform in 2020, but historical loan data remains publicly available through various sources, including Kaggle
 2. Download the loan-level data files (CSV format)
 3. Place them in the `data/` directory
 4. The notebooks expect a combined file called `lending_club_loans.csv` — see `data/README.md` for exact preprocessing steps to merge quarterly files
@@ -73,7 +72,7 @@ The dataset comes from LendingClub's public loan data, covering loans issued fro
 
 **Notebook:** `01_investor_framing_and_eda.ipynb`
 
-The first notebook is about understanding the data before touching any models. The framing matters here — we're approaching this as an investor trying to maximize risk-adjusted returns, not as a data scientist trying to minimize classification error. That distinction shapes every decision that follows.
+The first notebook is about understanding the data before touching any models. The framing matters here, as we're approaching this as an investor trying to maximize risk-adjusted returns, not as a data scientist trying to minimize classification error. 
 
 **Key findings from EDA:**
 
@@ -82,23 +81,23 @@ The grade distribution tells the first important story. Grade B and C loans make
 Default rates follow the expected gradient:
 
 | Grade | Default Rate | Avg. Interest Rate |
-|---|---|---|
-| A | 9.1% | 7.2% |
-| B | 17.6% | 10.9% |
-| C | 28.1% | 14.2% |
-| D | 36.6% | 18.1% |
-| E | 43.6% | 21.3% |
-| F | 49.3% | 24.9% |
-| G | 54.6% | 27.5% |
+|-------|--------------|--------------------|
+| A     | 9.1%         | 7.2%               |
+| B     | 17.6%        | 10.9%              |
+| C     | 28.1%        | 14.2%              |
+| D     | 36.6%        | 18.1%              |
+| E     | 43.6%        | 21.3%              |
+| F     | 49.3%        | 24.9%              |
+| G     | 54.6%        | 27.5%              |
 
-The interesting question isn't whether higher grades default less — of course they do. It's whether the higher interest rates on riskier loans compensate for the additional default risk. The answer depends heavily on how you define "return."
+The interesting question isn't whether higher grades default less; of course, they do. It's whether the higher interest rates on riskier loans compensate for the additional default risk. The answer depends heavily on how you define "return."
 
 We define four return metrics that capture different investor assumptions:
 - **M1 (Pessimistic):** No reinvestment of recovered principal — investor simply loses defaulted principal
 - **M2 (Optimistic):** Immediate reinvestment at the risk-free rate on recovered amounts
 - **M3 (Interest-based):** Return calculated as a function of the interest rate and default timing
 
-Under M1, Grades C through G actually produce negative average returns — the default losses exceed the interest income. Under M3 with a 2% reinvestment rate, Grade G loans look attractive. This isn't a contradiction — it reflects genuine uncertainty about what the right return model is, and it drives the investment strategy design in Phase 3.
+Under M1, Grades C through G actually produce negative average returns: the default losses exceed the interest income. Under M3 with a 2% reinvestment rate, Grade G loans look attractive. This isn't a contradiction; it reflects genuine uncertainty about what the right return model is, and it drives the investment strategy design in Phase 3.
 
 **On feature correlations:** Several features are highly correlated in ways that create downstream issues. `int_rate` and `grade` are strongly correlated because LendingClub sets interest rates based on their internal grade model. `fico_range_high` and `fico_range_low` are by definition almost perfectly correlated. `loan_amnt` and `installment` move together. These correlations inform the feature selection decisions in Phase 2.
 
@@ -118,7 +117,7 @@ Percentage fields (`int_rate`, `revol_util`) require string cleaning before nume
 
 **On outlier handling:** We take a domain-informed approach. For `annual_inc`, `dti`, `revol_bal`, and `open_acc`, outliers are flagged and removed because they likely represent data entry errors or edge cases that won't generalize. But for `delinq_2yrs`, `pub_rec`, and the recovery fields, we retain outliers — a borrower with 20 delinquencies in the past two years is a genuine data point worth keeping, not noise.
 
-**The temporal structure issue:** Loans in this dataset span from 2010 to 2019, and credit conditions changed substantially over that period. A model trained on 2010 loans is being asked to generalize to borrowers in a very different macroeconomic environment in 2017. This is addressed directly in Phase 3's temporal stability analysis, but it's worth flagging early: random train/test splits will overestimate model performance in a way that temporal splits will not.
+**The temporal structure issue:** Loans in this dataset span from 2010 to 2019, and credit conditions changed substantially over that period. A model trained on 2010 loans is being asked to generalize to borrowers in a very different macroeconomic environment in 2017. This is addressed directly in Phase 3's temporal stability analysis. Random train/test splits will overestimate model performance through data leakage in a way that temporal splits will not.
 
 ---
 
@@ -141,7 +140,7 @@ We train and evaluate six classifiers on the task of predicting whether a loan w
 | Decision Tree | 0.66 | 0.60 |
 | Random Forest | 0.70 | **0.67** |
 
-All models are evaluated using AUC-ROC rather than accuracy. The class imbalance (about 19% default rate in our sample) makes accuracy a misleading metric — a model that predicts "no default" for every loan would achieve ~80% accuracy while being completely useless.
+All models are evaluated using AUC-ROC rather than accuracy. The class imbalance (about 19% default rate in our sample) makes accuracy a misleading metric. A model that predicts "no default" for every loan would achieve ~80% accuracy while being completely useless.
 
 ### The Data Leakage Investigation
 
@@ -169,7 +168,7 @@ We test four investment strategies using 100 independent train/test splits to av
 
 **Return-based:** Train a regression model to predict expected return for each loan and invest in the top 1,000 by predicted return.
 
-**Default-return-based (DefRet):** Train two separate regression models — one for defaulted loans, one for non-defaulted loans. Compute expected return as a probability-weighted combination and invest in the top 1,000.
+**Default-return-based (DefRet):** Train two separate regression models: one for defaulted loans, one for non-defaulted loans. Compute expected return as a probability-weighted combination and invest in the top 1,000.
 
 Results averaged across 100 runs:
 
