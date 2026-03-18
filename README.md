@@ -1,4 +1,4 @@
-# Credit Risk & Portfolio Analytics
+# Credit Risk & Portfolio Construction using Machine Learning 
 ### Predicting Loan Default and Optimizing Investment Strategy on LendingClub Data
 
 ---
